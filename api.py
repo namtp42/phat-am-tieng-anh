@@ -18,13 +18,25 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 analyzer = PronunciationAnalyzer()
 
-# Initialize database trên startup
-@app.before_request
-def startup():
+# Initialize database ONE TIME at startup
+try:
+    init_db()
+except Exception as e:
+    print(f"❌ Database initialization error: {e}")
+    import traceback
+    traceback.print_exc()
+
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint cho Railway"""
     try:
-        init_db()
-    except:
-        pass
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        return jsonify({"status": "healthy", "database": "connected"}), 200
+    except Exception as e:
+        return jsonify({"status": "unhealthy", "error": str(e)}), 503
 
 
 # ==================== USER ENDPOINTS ====================
